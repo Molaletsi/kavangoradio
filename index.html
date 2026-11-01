@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radio Pulse - Standalone Listener App</title>
+    <title>Veleskatti Radio - Standalone Listener App</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -34,7 +34,7 @@
                     <i class="fa-solid fa-radio"></i>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-base tracking-tight text-white">KAVANGO RADIO</h1>
+                    <h1 class="font-extrabold text-base tracking-tight text-white">VELESKATTI RADIO</h1>
                 </div>
             </div>
             <span id="connection-status-badge" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
@@ -59,18 +59,18 @@
         <div class="w-full bg-slate-950 rounded-2xl border border-slate-800 p-4 space-y-4 z-10 relative shadow-inner">
             <div class="flex items-center justify-between">
                 <div class="text-xs font-bold text-slate-300 flex items-center gap-2">
-                    <i class="fa-solid fa-tower-broadcast text-rose-500 animate-pulse"></i> Direct Shoutcast Feed
+                    <i class="fa-solid fa-tower-broadcast text-rose-500 animate-pulse"></i> Secure HTTPS Feed
                 </div>
                 <span id="player-state-badge" class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-mono">LIVE MP3</span>
             </div>
 
             <!-- Custom Built Player around native audio engine -->
             <div class="space-y-4 py-2" id="player-container">
-                <!-- Direct HTML5 Audio element for Shoutcast MP3 Stream -->
-                <audio id="audio_1" preload="none" controls class="w-full rounded-xl bg-slate-900 border border-slate-800 p-2 hidden">
-                    <source src="http://178.32.146.184:6568/stream?type=http&amp;nocache=9" type="audio/mpeg">
-                    <source src="http://178.32.146.184:6568/;stream.mp3" type="audio/mpeg">
-                    <source src="http://178.32.146.184:6568/;" type="audio/mpeg">
+                <!-- Direct HTML5 Audio element for Secure Shoutcast Stream -->
+                <audio id="audio_1" preload="none" class="hidden">
+                    <!-- Update with your FastCast4u or secure HTTPS proxy stream link -->
+                    <source src="https://eu4.fastcast4u.com/proxy/veleskatti?mp=/1" type="audio/mpeg">
+                    <source src="https://eu4.fastcast4u.com/stream/veleskatti" type="audio/mpeg">
                 </audio>
 
                 <!-- Custom High-Tech Play/Pause Control -->
@@ -93,7 +93,7 @@
         <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 z-10 relative">
             <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <span>Signal Visualizer</span>
-                <span class="text-emerald-400 font-mono">6568 Active</span>
+                <span class="text-emerald-400 font-mono">Stream Active</span>
             </div>
             <div class="h-12 w-full bg-slate-900 rounded-xl overflow-hidden p-1">
                 <canvas id="listener-canvas" class="w-full h-full"></canvas>
@@ -103,15 +103,13 @@
     </div>
 
     <script>
-        // Global variables & elements
         let audio, playBtn, playIcon, statusText;
         let isPlayPending = false;
         let visualizerAnimFrame = null;
 
         const STREAM_URLS = [
-            "http://178.32.146.184:6568/stream?type=http&nocache=9",
-            "http://178.32.146.184:6568/;stream.mp3",
-            "http://178.32.146.184:6568/;"
+            "https://eu4.fastcast4u.com/proxy/veleskatti?mp=/1",
+            "https://eu4.fastcast4u.com/stream/veleskatti"
         ];
         let currentStreamIdx = 0;
 
@@ -123,33 +121,10 @@
 
             if (audio) {
                 audio.onerror = (e) => {
-                    console.warn("Audio error encountered, trying fallback mount...", e);
+                    console.warn("Audio stream error, trying fallback source...", e);
                     currentStreamIdx = (currentStreamIdx + 1) % STREAM_URLS.length;
                     audio.src = STREAM_URLS[currentStreamIdx];
                 };
-            }
-        }
-
-        async function attemptAutoPlay() {
-            if (!audio) initAudioEngine();
-            try {
-                isPlayPending = true;
-                statusText.innerText = "Connecting to Live Stream...";
-                statusText.className = "text-xs font-semibold text-amber-400 animate-pulse";
-                
-                await audio.play();
-
-                // Auto-play succeeded!
-                playIcon.className = "fa-solid fa-pause ml-0";
-                statusText.innerText = "Broadcasting Live";
-                statusText.className = "text-xs font-semibold text-emerald-400 animate-pulse";
-                startSimulatedVisualizer();
-            } catch (err) {
-                console.warn("Browser prevented unprompted autoplay:", err);
-                statusText.innerText = "Tap Play to Listen";
-                statusText.className = "text-xs font-semibold text-indigo-400";
-            } finally {
-                isPlayPending = false;
             }
         }
 
@@ -163,7 +138,6 @@
                     statusText.innerText = "Connecting live audio stream...";
                     statusText.className = "text-xs font-semibold text-amber-400 animate-pulse";
 
-                    // Set active stream URL explicitly
                     audio.src = STREAM_URLS[currentStreamIdx];
                     audio.load();
                     
@@ -177,8 +151,9 @@
                     }
                 } catch (err) {
                     console.error("Playback execution error:", err);
-                    statusText.innerText = "Click again or open status page link";
+                    statusText.innerText = "Stream offline or blocked. Check connection.";
                     statusText.className = "text-xs font-semibold text-rose-400";
+                    stopVisualizer();
                 } finally {
                     isPlayPending = false;
                 }
@@ -233,13 +208,11 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
-        // Expose functions globally
         window.toggleAudio = toggleAudio;
         window.setVolume = setVolume;
 
         window.addEventListener('DOMContentLoaded', () => {
             initAudioEngine();
-            attemptAutoPlay();
         });
     </script>
 </body>
